@@ -1,3 +1,4 @@
+import json
 import requests
 from sys import argv
 from flask import Flask, request
@@ -27,3 +28,63 @@ def register_app():
 @app.route('/app', methods=['DELETE'])
 def deregister_app():
     return requests.delete(f"{endpoint}/app?appName={request.args['appName']}&appID={request.args['appID']}").json()
+
+
+@app.route('/schema', methods=['PUT'])
+def upload_schema():
+    return requests.put(f"{endpoint}/schema?appID={request.args['appID']}&fileName={request.args['fileName']}&version={request.args['version']}", data=request.data).text
+
+
+@app.route('/schema', methods=['POST'])
+def update_schema():
+    return requests.post(f"{endpoint}/schema?appID={request.args['appID']}&version={request.args['version']}", data=request.data).text
+
+
+entity_type_mapper = {
+    'User': koke_kokko_pb2.User,
+    'Article': koke_kokko_pb2.Article,
+    'Tag': koke_kokko_pb2.Tag
+}
+
+
+def construct_entity(entity_type: type, attrs: dict):
+    entity = entity_type()
+    for k, v in attrs.items():
+        entity.__setattr__(k, v)
+    return entity
+
+
+@app.route('/schema', methods=['POST'])
+def update_record():
+    entity_type = entity_type_mapper[request.args['entityType']]
+    entity_data = construct_entity(
+        entity_type, request.json).SerializeToString()
+    response = requests.post(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}", data=entity_data)
+
+    response['record_value'] = entity_type().ParseFromString(response.content)
+    return response
+
+
+@app.route('/schema', methods=['DELETE'])
+def delete_record():
+    return requests.delete(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}").json()
+
+
+@app.route('/query', methods=['GET'])
+def get_record():
+    entity_type = entity_type_mapper[request.args['entityType']]
+    if 'beginKey' in request.args:
+        # range query
+        response = requests.get(
+            f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
+        return entity_type().ParseFromString(response.content).__dict__()
+    else:
+        # normal query
+        response = requests.get(
+            f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}")
+        return entity_type().ParseFromString(response.content).__dict__()
+
+
+app.run('0.0.0.0', port, debug=True)
