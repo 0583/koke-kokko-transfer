@@ -154,7 +154,7 @@ def handle_transaction():
 
 
 @app.route('/record/transactional', methods=['POST'])
-def update_record():
+def update_record_txn():
     entity_type = entity_type_mapper[request.args['schemaName']]
     entity_data = deserialize_entity(
         entity_type, request.json).SerializeToString()
@@ -169,7 +169,7 @@ def update_record():
 
 
 @app.route('/record/transactional', methods=['DELETE'])
-def delete_record():
+def delete_record_txn():
     return requests.delete(
         f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}&transactionID={request.args['transactionID']}").json()
 
