@@ -113,6 +113,12 @@ def get_record():
         print(response.content)
 
         bts = bytearray(response.content)
+        if not bts:
+            return {
+                'more': 0,
+                'entities': []
+            }
+
         more = bts.pop(0)
 
         entities = []
@@ -135,6 +141,11 @@ def get_record():
         entity = entity_type()
         entity.ParseFromString(response.content)
         return serialize_entity(entity)
+
+
+@app.route('/transaction', methods=['POST'])
+def handle_transaction():
+    return requests.post(f"{endpoint}/transaction?{ '&'.join((k + '=' + v) for k, v in request.args) }").json()
 
 
 app.run('0.0.0.0', port, debug=True)
