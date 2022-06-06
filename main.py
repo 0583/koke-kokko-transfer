@@ -54,7 +54,7 @@ def construct_entity(entity_type: type, attrs: dict):
     return entity
 
 
-@app.route('/schema', methods=['POST'])
+@app.route('/record', methods=['POST'])
 def update_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
     entity_data = construct_entity(
@@ -66,13 +66,13 @@ def update_record():
     return response
 
 
-@app.route('/schema', methods=['DELETE'])
+@app.route('/record', methods=['DELETE'])
 def delete_record():
     return requests.delete(
         f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}").json()
 
 
-@app.route('/query', methods=['GET'])
+@app.route('/record', methods=['GET'])
 def get_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
     if 'beginKey' in request.args:
