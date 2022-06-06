@@ -50,7 +50,10 @@ entity_type_mapper = {
 def construct_entity(entity_type: type, attrs: dict):
     entity = entity_type()
     for k, v in attrs.items():
-        entity.__setattr__(k, v)
+        if type(v) != list:
+            entity.__setattr__(k, v)
+        else:
+            entity['k'][:] = v
     return entity
 
 
