@@ -1,7 +1,9 @@
+from base64 import b64encode
 import json
+from uuid import uuid4
 import requests
 from sys import argv
-from flask import Flask, request
+from flask import Flask, request, send_file
 
 
 try:
@@ -17,6 +19,21 @@ from VERSION import *
 
 endpoint = "http://202.120.40.82:11233"
 app = Flask(__name__)
+
+
+@app.route('/image', methods=['POST'])
+def post_image():
+    unique_id = str(uuid4())
+    request.files['image'].save('images/' + unique_id)
+    return {
+        'status': 'ok',
+        'uuid': unique_id
+    }
+
+
+@app.route('/image', methods=['GET'])
+def get_image():
+    return send_file('images/' + request.args['uuid'])
 
 
 @app.route('/app', methods=['POST'])
@@ -94,9 +111,22 @@ def get_record():
         response = requests.get(
             f"{endpoint}/query?range=true&appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
         print(response.content)
-        entity = entity_type()
-        entity.ParseFromString(response.content)
-        return serialize_entity(entity)
+
+        bts = bytearray(response.content)
+        more = bts.pop(0)
+
+        entities = []
+        while bts:
+            size = int.from_bytes(bts[:2], byteorder='big')
+            entity = entity_type()
+            entity.ParseFromString(bts[2:2 + size])
+            entities.append(entity)
+            bts = bts[2 + size:]
+
+        return {
+            'more': more,
+            'entities': [serialize_entity(e) for e in entities]
+        }
     else:
         # normal query
         response = requests.get(
