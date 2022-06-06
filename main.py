@@ -150,7 +150,7 @@ def get_record():
 
 @app.route('/transaction', methods=['POST'])
 def handle_transaction():
-    return requests.post(f"{endpoint}/transaction?{ '&'.join((k + '=' + v) for k, v in request.args) }").json()
+    return requests.post(f"{endpoint}/transaction?{ '&'.join((k + '=' + v) for k, v in request.args.items()) }").json()
 
 
 @app.route('/record/transactional', methods=['POST'])
