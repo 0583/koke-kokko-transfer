@@ -21,6 +21,11 @@ endpoint = "http://202.120.40.82:11233"
 app = Flask(__name__)
 
 
+@app.route('/hello', methods=['GET'])
+def hello_world():
+    return requests.get(f"{endpoint}/hello").json()
+
+
 @app.route('/image', methods=['POST'])
 def post_image():
     unique_id = str(uuid4())
@@ -106,7 +111,7 @@ def delete_record():
 @app.route('/query', methods=['GET'])
 def get_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
-    if 'beginKey' in request.args:
+    if 'range' in request.args:
         # range query
         response = requests.get(
             f"{endpoint}/query?range=true&appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
