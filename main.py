@@ -1,3 +1,4 @@
+import json
 import requests
 from sys import argv
 from flask import Flask, request
@@ -15,8 +16,6 @@ from google.protobuf.json_format import MessageToDict
 from VERSION import *
 
 endpoint = "http://202.120.40.82:11233"
-appName = KOKKO_APP_NAME
-appID = KOKKO_APP_ID
 app = Flask(__name__)
 
 
@@ -27,17 +26,20 @@ def register_app():
 
 @app.route('/app', methods=['DELETE'])
 def deregister_app():
-    return requests.delete(f"{endpoint}/app?appName={request.args['appName']}&appID={request.args['appID']}").json()
+    return requests.delete(f"{endpoint}/app?appName={request.args['appName']}&appID={request.args['appID']}", headers=request.headers).json()
 
 
 @app.route('/schema', methods=['PUT'])
 def upload_schema():
-    return requests.put(f"{endpoint}/schema?appID={request.args['appID']}&fileName={request.args['fileName']}&version={request.args['version']}", data=request.data).text
+    print(request.data)
+    return requests.put(
+        f"{endpoint}/schema?appID={request.args['appID']}&fileName={request.args['fileName']}&version={request.args['version']}", headers=request.headers, data=request.data).text
 
 
 @app.route('/schema', methods=['POST'])
 def update_schema():
-    return requests.post(f"{endpoint}/schema?appID={request.args['appID']}&version={request.args['version']}", data=request.data).text
+    return requests.post(
+        f"{endpoint}/schema?appID={request.args['appID']}&version={request.args['version']}", headers=request.headers, data=request.data).text
 
 
 entity_type_mapper = {
@@ -66,8 +68,14 @@ def update_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
     entity_data = deserialize_entity(
         entity_type, request.json).SerializeToString()
-    return requests.post(
-        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}", data=entity_data).json()
+    print(entity_data)
+    ret = requests.post(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}", data=entity_data, headers={
+            'Content-Type': 'octet-stream'
+        }).text
+
+    print(ret)
+    return ret
 
 
 @app.route('/record', methods=['DELETE'])
@@ -82,7 +90,8 @@ def get_record():
     if 'beginKey' in request.args:
         # range query
         response = requests.get(
-            f"{endpoint}/query?appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
+            f"{endpoint}/query?range=true&appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
+        print(response.content)
         entity = entity_type()
         entity.ParseFromString(response.content)
         return serialize_entity(entity)
@@ -90,6 +99,7 @@ def get_record():
         # normal query
         response = requests.get(
             f"{endpoint}/query?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}")
+        print(response.content)
         entity = entity_type()
         entity.ParseFromString(response.content)
         return serialize_entity(entity)
