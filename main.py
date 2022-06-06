@@ -33,13 +33,15 @@ def deregister_app():
 def upload_schema():
     print(request.data)
     return requests.put(
-        f"{endpoint}/schema?appID={request.args['appID']}&fileName={request.args['fileName']}&version={request.args['version']}", headers=request.headers, data=request.data).text
+        f"{endpoint}/schema?appID={request.args['appID']}&fileName={request.args['fileName']}&version={request.args['version']}", headers={
+            'Content-Type': 'text-plain'
+        }, data=request.data).text
 
 
 @app.route('/schema', methods=['POST'])
 def update_schema():
     return requests.post(
-        f"{endpoint}/schema?appID={request.args['appID']}&version={request.args['version']}", headers=request.headers, data=request.data).text
+        f"{endpoint}/schema?appID={request.args['appID']}&version={request.args['version']}").text
 
 
 entity_type_mapper = {
