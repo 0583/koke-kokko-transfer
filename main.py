@@ -53,7 +53,7 @@ def construct_entity(entity_type: type, attrs: dict):
         if type(v) != list:
             entity.__setattr__(k, v)
         else:
-            entity.__getattr__(k)[:] = v
+            getattr(entity, k)[:] = v
     return entity
 
 
