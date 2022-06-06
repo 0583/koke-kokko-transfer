@@ -1,4 +1,3 @@
-import json
 import requests
 from sys import argv
 from flask import Flask, request
@@ -11,6 +10,7 @@ except Exception:
     port = 8080
 
 import koke_kokko_pb2
+from google.protobuf.json_format import MessageToDict
 
 from VERSION import *
 
@@ -47,7 +47,7 @@ entity_type_mapper = {
 }
 
 
-def construct_entity(entity_type: type, attrs: dict):
+def deserialize_entity(entity_type: type, attrs: dict):
     entity = entity_type()
     for k, v in attrs.items():
         if type(v) != list:
@@ -57,16 +57,17 @@ def construct_entity(entity_type: type, attrs: dict):
     return entity
 
 
+def serialize_entity(entity) -> dict:
+    return MessageToDict(entity, including_default_value_fields=True, preserving_proto_field_name=True)
+
+
 @app.route('/record', methods=['POST'])
 def update_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
-    entity_data = construct_entity(
+    entity_data = deserialize_entity(
         entity_type, request.json).SerializeToString()
-    response = requests.post(
-        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}", data=entity_data)
-
-    response['record_value'] = entity_type().ParseFromString(response.content)
-    return response
+    return requests.post(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}", data=entity_data).json()
 
 
 @app.route('/record', methods=['DELETE'])
@@ -75,19 +76,23 @@ def delete_record():
         f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}").json()
 
 
-@app.route('/record', methods=['GET'])
+@app.route('/query', methods=['GET'])
 def get_record():
     entity_type = entity_type_mapper[request.args['schemaName']]
     if 'beginKey' in request.args:
         # range query
         response = requests.get(
-            f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
-        return entity_type().ParseFromString(response.content).__dict__()
+            f"{endpoint}/query?appID={request.args['appID']}&schemaName={request.args['schemaName']}&beginKey={request.args['beginKey']}&endKey={request.args['endKey']}&iteration={request.args['iteration']}")
+        entity = entity_type()
+        entity.ParseFromString(response.content)
+        return serialize_entity(entity)
     else:
         # normal query
         response = requests.get(
-            f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}")
-        return entity_type().ParseFromString(response.content).__dict__()
+            f"{endpoint}/query?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}")
+        entity = entity_type()
+        entity.ParseFromString(response.content)
+        return serialize_entity(entity)
 
 
 app.run('0.0.0.0', port, debug=True)
