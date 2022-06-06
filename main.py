@@ -41,9 +41,9 @@ def update_schema():
 
 
 entity_type_mapper = {
-    'User': koke_kokko_pb2.User,
-    'Article': koke_kokko_pb2.Article,
-    'Tag': koke_kokko_pb2.Tag
+    'csdi.User': koke_kokko_pb2.User,
+    'csdi.Article': koke_kokko_pb2.Article,
+    'csdi.Tag': koke_kokko_pb2.Tag
 }
 
 
@@ -56,7 +56,7 @@ def construct_entity(entity_type: type, attrs: dict):
 
 @app.route('/schema', methods=['POST'])
 def update_record():
-    entity_type = entity_type_mapper[request.args['entityType']]
+    entity_type = entity_type_mapper[request.args['schemaName']]
     entity_data = construct_entity(
         entity_type, request.json).SerializeToString()
     response = requests.post(
@@ -74,7 +74,7 @@ def delete_record():
 
 @app.route('/query', methods=['GET'])
 def get_record():
-    entity_type = entity_type_mapper[request.args['entityType']]
+    entity_type = entity_type_mapper[request.args['schemaName']]
     if 'beginKey' in request.args:
         # range query
         response = requests.get(
