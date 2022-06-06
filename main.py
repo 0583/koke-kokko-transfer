@@ -153,4 +153,25 @@ def handle_transaction():
     return requests.post(f"{endpoint}/transaction?{ '&'.join((k + '=' + v) for k, v in request.args) }").json()
 
 
+@app.route('/record/transactional', methods=['POST'])
+def update_record():
+    entity_type = entity_type_mapper[request.args['schemaName']]
+    entity_data = deserialize_entity(
+        entity_type, request.json).SerializeToString()
+    print(entity_data)
+    ret = requests.post(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&transactionID={request.args['transactionID']}", data=entity_data, headers={
+            'Content-Type': 'octet-stream'
+        }).text
+
+    print(ret)
+    return ret
+
+
+@app.route('/record/transactional', methods=['DELETE'])
+def delete_record():
+    return requests.delete(
+        f"{endpoint}/record?appID={request.args['appID']}&schemaName={request.args['schemaName']}&recordKey={request.args['recordKey']}&transactionID={request.args['transactionID']}").json()
+
+
 app.run('0.0.0.0', port, debug=True)
